@@ -34,7 +34,7 @@ Suppose you wanted to dynamically generate a parser with a PEG based on some use
 This same problem, by the way, occurs with regular expressions (regexes).  Suppose you write a regex to match against Twitter handles — pretty simple, just check for an at-sign followed by an alphanumeric string:
 
 ```
-var twitterRegex = /@[a-zA-Z0-0_]+/;
+var twitterRegex = /@[a-zA-Z0-9_]+/;
 ```
 
 Now suppose you want to write a new regex that matches a Twitter handle enclosed by parentheses.  How do you do it?  There are no affordances for combining or composing regular expressions.  We're back to text munging:
