@@ -1,0 +1,25 @@
+{
+  "name": "parse-clear",
+  "version": "0.1.0",
+  "description": "readable parser combinators",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noahlt/parse-clear.git"
+  },
+  "keywords": [
+    "parser",
+    "parser generator",
+    "parser combinators",
+    "string processing"
+  ],
+  "author": "Noah Tye <hi@noahtye.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/noahlt/parse-clear/issues"
+  },
+  "homepage": "https://github.com/noahlt/parse-clear#readme"
+}
