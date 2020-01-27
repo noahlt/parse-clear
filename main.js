@@ -41,9 +41,9 @@ function makeParser(parseSpec) {
             return parseSpec;
         }
     } else if (typeof parseSpec === 'string') {
-        return ParserCombinator.lit(parseSpec);
+        return lit(parseSpec);
     } else if (typeof parseSpec === 'regexp') {
-        return ParserCombinator.lit(parseSpec);
+        return lit(parseSpec);
     } else {
         throw new Error("failed to make parser from: "+ parseSpec);
     }
@@ -55,82 +55,88 @@ const parseFunctionArgName = f => {
     const m = RE_functionName.exec(f + "");
     return m && m[2];
 }
-const ParserCombinator = {
-    // building blocks
-    lit: literal => ____ParserCombinatorInternalSrc => {
-        let src = makeSrc(____ParserCombinatorInternalSrc);
-        if (src.first(literal.length) === literal) {
-            return { raw: literal, remainder: src.advance(literal.length) };
-        } else {
-            return { src, error: `failed to match literal ${literal} at ${src.pos}`};
-        }
-    },
 
-    regexp: re => ____ParserCombinatorInternalSrc => {
-        let src = makeSrc(____ParserCombinatorInternalSrc);
-        const m = src.match(`(${re.source}).*`);
-        if (m) {
-            return { raw: m[1], remainder: src.advance(m[1].length) };
-        } else {
-            return { raw: src, error: `failed to match regex ${re} at ${src.pos}`};
-        }
-    },
-    
-    // composition
-    seq: (...parsers) => ____ParserCombinatorInternalSrc => {
-        let src = makeSrc(____ParserCombinatorInternalSrc);
-        const origSrc = src;
-        const startPos = src.pos;
-
-        const children = [];
-        for (let index = 0; index < parsers.length; index++) { // for-loop so we can return early on error
-            let res = makeParser(parsers[index])(src);
-            if (res.error) {
-                return { error: `failed to parse seq #${index}: ${res.error}` };
-            } else {
-                src = res.remainder;
-                // note: we don't ever want to delete res.remainder in order to preserve compositionality!
-                if (res.raw) { // TODO: this is a dumb way to signal "we parsed something"
-                    children.push(res);
-                }
-            }
-        }
-        const parseNode = {
-            // use origSrc if src was deleted by a child because parse finished
-            raw: src ?
-                src.orig.slice(startPos, src.pos) :
-                origSrc.orig.slice(startPos),
-            remainder: src,
-            children,
-        };
-        for (let child of children) {
-            if (child.name) {
-                parseNode[child.name] = child;
-            }
-        }
-        return parseNode;
-    },
-
-    alt: () => s => undefined,
-
-    opt: (parser) => ____ParserCombinatorInternalSrc => {
-        let src = makeSrc(____ParserCombinatorInternalSrc);
-        let res = makeParser(parser)(src);
-        if (res.error) {
-            return {
-                remainder: src,
-            };
-        } else {
-            return res;
-        }
-    },
+// building blocks
+const lit = (literal) => ____ParserCombinatorInternalSrc => {
+    let src = makeSrc(____ParserCombinatorInternalSrc);
+    if (src.first(literal.length) === literal) {
+        return { str: literal, remainder: src.advance(literal.length) };
+    } else {
+        return { src, error: `failed to match literal ${literal} at ${src.pos}`};
+    }
 };
 
-ParserCombinator.natnum = ParserCombinator.regexp(/[0-9]+/);
-ParserCombinator.integer = ParserCombinator.regexp(/-?[0-9]+/);
+const re = (regex) => ____ParserCombinatorInternalSrc => {
+    let src = makeSrc(____ParserCombinatorInternalSrc);
+    const m = src.match(`(${regex.source}).*`);
+    if (m) {
+        return { str: m[1], remainder: src.advance(m[1].length) };
+    } else {
+        return { str: src, error: `failed to match regex ${regex} at ${src.pos}`};
+    }
+};
+    
+// composition
+const seq = (...parsers) => ____ParserCombinatorInternalSrc => {
+    let src = makeSrc(____ParserCombinatorInternalSrc);
+    const origSrc = src;
+    const startPos = src.pos;
 
-ParserCombinator.word = ParserCombinator.regexp(/[a-zA-Z]+/);
-ParserCombinator.identifier = ParserCombinator.regexp(/[a-zA-Z_]+/);
-ParserCombinator.handle = ParserCombinator.regexp(/[a-zA-Z_-]+/);
+    const children = [];
+    for (let index = 0; index < parsers.length; index++) { // for-loop so we can return early on error
+        let res = makeParser(parsers[index])(src);
+        if (res.error) {
+            return { error: `failed to parse seq #${index}: ${res.error}` };
+        } else {
+            src = res.remainder;
+            // note: we don't ever want to delete res.remainder in order to preserve compositionality!
+            if (res.str) { // TODO: this is a dumb way to signal "we parsed something"
+                children.push(res);
+            }
+        }
+    }
+    const parseNode = {
+        // use origSrc if src was deleted by a child because parse finished
+        str: src ?
+            src.orig.slice(startPos, src.pos) :
+            origSrc.orig.slice(startPos),
+        remainder: src,
+        children,
+    };
+    for (let child of children) {
+        if (child.name) {
+            parseNode[child.name] = child;
+        }
+    }
+    return parseNode;
+};
 
-module.exports = { ParserCombinator };
+const alt = () => s => undefined;
+
+const opt = (parser) => ____ParserCombinatorInternalSrc => {
+    let src = makeSrc(____ParserCombinatorInternalSrc);
+    let res = makeParser(parser)(src);
+    if (res.error) {
+        return {
+            remainder: src,
+        };
+    } else {
+        return res;
+    }
+};
+
+const natnum = re(/[0-9]+/);
+const integer = re(/-?[0-9]+/);
+
+// not sure about these names:
+const word = re(/[a-zA-Z]+/); // alpha
+const identifier = re(/[a-zA-Z0-9_]+/); // alphanumeric + underscore
+const handle = re(/[a-zA-Z0-9_-]+/); // alphanumeric + underscore + hyphen
+
+const combinators = { lit, re, seq, alt, opt, natnum, integer, word, identifier, handle };
+
+module.exports = Object.assign({}, combinators);
+
+module.exports.ParseClear = function ParseClear(fn) {
+    return fn(combinators);
+}
