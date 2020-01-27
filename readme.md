@@ -53,6 +53,16 @@ All of this is to say: good string processing tools should be composable, the wa
 
 ## Introducing ParseClear
 
+Before running the following examples, you must install the `parse-clear` package:
+
+```sh
+# yarn:
+yarn add parse-clear
+
+# npm:
+npm install --save parse-clear
+```
+
 Let's start with something simple like parsing a Twitter handle:
 
 ```js
